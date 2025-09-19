@@ -61,21 +61,9 @@ public class mainTeleOp extends LinearOpMode {
 
             if (!tagProcessor.getDetections().isEmpty()) {
 
-                AprilTagDetection tag = tagProcessor.getDetections().get(0);
+                AprilTag.handleTag(tagProcessor, tags, telemetry);
 
-                telemetry.addData("Tag ID", tag.id);
 
-                if (tag.ftcPose != null) {
-
-                    for (AprilTag t : tags) {
-                        if (t.id == tag.id) {
-                            telemetry.addLine(t.toString());
-                        }
-                    }
-
-                } else {
-                    telemetry.addLine("No FTC Pose available (tag not in field layout or bad detection)");
-                }
 
             } else {
                 telemetry.addLine("No tags detected");

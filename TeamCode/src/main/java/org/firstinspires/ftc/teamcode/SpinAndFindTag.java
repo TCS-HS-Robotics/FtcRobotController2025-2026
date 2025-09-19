@@ -4,6 +4,7 @@ import android.util.Size;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
@@ -12,7 +13,7 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 
 @TeleOp
-public class AprilTagTesting extends LinearOpMode {
+public class SpinAndFindTag extends LinearOpMode {
 
     double x;
     double y;
@@ -24,8 +25,25 @@ public class AprilTagTesting extends LinearOpMode {
     double elevation;
     double bearing;
 
+    private DcMotor leftFront = null;
+    private DcMotor leftBack = null;
+    private DcMotor rightFront = null;
+    private DcMotor rightBack = null;
+
+    boolean doSpin = true;
+
     @Override
     public void runOpMode() throws InterruptedException {
+
+        leftFront = hardwareMap.get(DcMotor.class, "leftfront");
+        leftBack = hardwareMap.get(DcMotor.class, "leftback");
+        rightFront = hardwareMap.get(DcMotor.class, "rightfront");
+        rightBack = hardwareMap.get(DcMotor.class, "rightback");
+
+        leftFront.setDirection(DcMotor.Direction.REVERSE);
+        leftBack.setDirection(DcMotor.Direction.REVERSE);
+        rightFront.setDirection(DcMotor.Direction.FORWARD);
+        rightBack.setDirection(DcMotor.Direction.FORWARD);
 
         // Create Tag Processor
         AprilTagProcessor tagProcessor = new AprilTagProcessor.Builder()
@@ -47,6 +65,7 @@ public class AprilTagTesting extends LinearOpMode {
         // opMode actions
         while(!isStopRequested() && opModeIsActive()) {
 
+
             // Check if a tag is detected
             if (!tagProcessor.getDetections().isEmpty()) {
                 // Get the first tag found
@@ -56,6 +75,7 @@ public class AprilTagTesting extends LinearOpMode {
 
                 // Make sure ftcPose is not null before using it
                 if (tag.ftcPose != null) {
+                    doSpin = false;
                     x = tag.ftcPose.x;
                     y = tag.ftcPose.y;
                     z = tag.ftcPose.z;
@@ -66,19 +86,40 @@ public class AprilTagTesting extends LinearOpMode {
                     elevation = tag.ftcPose.elevation;
                     bearing = tag.ftcPose.bearing;
 
+                    if (x > 0.0) {
+                        leftFront.setPower(0.3);
+                        leftBack.setPower(0.3);
+                    } else if (x < 0.0) {
+                        rightFront.setPower(0.3);
+                        rightBack.setPower(0.3);
+                    } else {
+                        leftFront.setPower(0.0);
+                        leftBack.setPower(0.0);
+                        rightFront.setPower(0.0);
+                        rightBack.setPower(0.0);
+                    }
+
                     telemetry.addData("x", x);
                     telemetry.addData("y", y);
                     telemetry.addData("z", z);
-                    telemetry.addData("pitch", pitch);
-                    telemetry.addData("roll", roll);
-                    telemetry.addData("yaw", yaw);
-                    telemetry.addData("range", range);
-                    telemetry.addData("elevation", elevation);
-                    telemetry.addData("bearing", bearing);
                 } else {
                     telemetry.addLine("No FTC Pose available (tag not in field layout or bad detection)");
                 }
             } else {
+
+                if (doSpin) {
+                    leftFront.setPower(0.3);
+                    leftBack.setPower(0.3);
+                    rightFront.setPower(-0.3);
+                    rightBack.setPower(-0.3);
+
+                } else {
+
+                    leftFront.setPower(0.0);
+                    leftBack.setPower(0.0);
+                    rightFront.setPower(0.0);
+                    rightBack.setPower(0.0);
+                }
                 telemetry.addLine("No tags detected");
             }
 
