@@ -27,7 +27,7 @@ public class AprilTag {
 
     // --- Static Helper Functions ---
 
-    public static void handleTag(AprilTagProcessor tagProcessor, ArrayList<AprilTag> tags, Telemetry telemetry) {
+    public static AprilTagDetection handleTag(AprilTagProcessor tagProcessor, ArrayList<AprilTag> tags, Telemetry telemetry) {
         AprilTagDetection tag = tagProcessor.getDetections().get(0);
 
         if (tag.ftcPose != null) {
@@ -43,6 +43,8 @@ public class AprilTag {
         } else {
             telemetry.addLine("No FTC Pose available (tag not in field layout or bad detection)");
         }
+
+        return tag;
     }
 
     public static double getTagDistance(AprilTagDetection detectedTag) {

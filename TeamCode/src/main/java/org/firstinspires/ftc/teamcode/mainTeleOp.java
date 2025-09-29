@@ -10,15 +10,12 @@ import org.firstinspires.ftc.teamcode.UtilClasses.AprilTags.AprilTag;
 import org.firstinspires.ftc.teamcode.UtilClasses.AprilTags.ColorTag;
 import org.firstinspires.ftc.teamcode.UtilClasses.AprilTags.EncodeTag;
 import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-
-// Import Utilities
-import org.firstinspires.ftc.teamcode.UtilClasses.*;
 
 import java.util.ArrayList;
 
-@TeleOp
+
+@TeleOp(name="mainTeleOp", group="Robot")
 public class mainTeleOp extends LinearOpMode {
 
     AprilTag blueTag = new ColorTag(20, "36h11", "blue");
@@ -29,6 +26,12 @@ public class mainTeleOp extends LinearOpMode {
     AprilTag code3Tag = new EncodeTag(23, "36h11", new char[]{'p', 'p', 'g'});
 
     ArrayList<AprilTag> tags = new ArrayList<AprilTag>();
+
+    // Camera Intrinsics
+    double fx = 2.00556700e+03;
+    double fy = 2.02680472e+03;
+    double cx = 8.82572217e+02;
+    double cy = 7.74741600e+02;
 
 
     @Override
@@ -46,6 +49,7 @@ public class mainTeleOp extends LinearOpMode {
                 .setDrawCubeProjection(true) // Draws a cube projection on the tag
                 .setDrawTagID(true) // Draws the tag number on the tag
                 .setDrawTagOutline(true) // Draws the tag outline on the tag
+                .setLensIntrinsics(fx, fy, cx, cy)
                 .build();
 
         // This is necessary for having the camera stream on the Driver Station
@@ -62,8 +66,6 @@ public class mainTeleOp extends LinearOpMode {
             if (!tagProcessor.getDetections().isEmpty()) {
 
                 AprilTag.handleTag(tagProcessor, tags, telemetry);
-
-
 
             } else {
                 telemetry.addLine("No tags detected");
