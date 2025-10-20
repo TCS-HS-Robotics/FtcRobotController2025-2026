@@ -5,39 +5,32 @@ import android.util.Size;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.firstinspires.ftc.teamcode.UtilClasses.Wheels;
+import org.firstinspires.ftc.teamcode.UtilClasses.AprilTags.AprilTag;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-// Import Utilities
+@TeleOp(name="West Cost Chassy Testing", group="Robot")
+public class WestCostChassyTesting extends LinearOpMode {
 
+    DcMotor right;
+    DcMotor left;
 
-@TeleOp(name="SpinAndFindTag", group="Robot")
-public class SpinAndFindTag extends LinearOpMode {
+    double x;
 
-    DcMotor leftFront;
-    DcMotor leftBack;
-    DcMotor rightFront;
-    DcMotor rightBack;
-
-    Wheels wheels;
-
-    boolean doSpin = false;
-
+    boolean doSpin = true;
 
     @Override
     public void runOpMode() throws InterruptedException {
 
-        leftFront = hardwareMap.get(DcMotor.class, "leftfront");
-        leftBack = hardwareMap.get(DcMotor.class, "leftback");
-        rightFront = hardwareMap.get(DcMotor.class, "rightfront");
-        rightBack = hardwareMap.get(DcMotor.class, "rightback");
+        left = hardwareMap.get(DcMotor.class, "left");
+        right = hardwareMap.get(DcMotor.class, "right");
 
-        wheels = new Wheels(leftFront, leftBack, rightFront, rightBack);
-
+        left.setDirection(DcMotorSimple.Direction.REVERSE);
+        right.setDirection(DcMotorSimple.Direction.FORWARD);
 
         // Create Tag Processor
         AprilTagProcessor tagProcessor = new AprilTagProcessor.Builder()
@@ -56,31 +49,37 @@ public class SpinAndFindTag extends LinearOpMode {
 
         waitForStart();
 
-        while (!isStopRequested() && opModeIsActive()) {
-
+        while (opModeIsActive()) {
             if (!tagProcessor.getDetections().isEmpty()) {
-
                 AprilTagDetection tag = tagProcessor.getDetections().get(0);
+
+                int id = tag.id;
+                telemetry.addLine("Found Tag: " + id);
 
                 if (tag.ftcPose != null) {
 
+                    doSpin = false;
+                    x = tag.ftcPose.x;
+                    AprilTag.showTagInfo(tagProcessor, telemetry);
+
+                    right.setPower(0.3);
+                    left.setPower(0.3);
+
+                } else {
+                    telemetry.addLine("Tag has no pose");
                 }
-
-
             } else {
-                telemetry.addLine("No tags detected");
 
                 if (doSpin) {
-                    wheels.turnRight();
+                    right.setPower(0.15);
+                    left.setPower(-0.15);
                 } else {
-                    wheels.stop();
+                    right.setPower(0);
+                    left.setPower(0);
                 }
-
+                telemetry.addLine("No tags detected");
             }
-
             telemetry.update();
-
         }
-
     }
 }

@@ -27,6 +27,19 @@ public class AprilTag {
 
     // --- Static Helper Functions ---
 
+    public static void showTagInfo(AprilTagProcessor tagProcessor, Telemetry telemetry) {
+        AprilTagDetection tag = tagProcessor.getDetections().get(0);
+
+        if (tag.ftcPose != null) {
+            telemetry.addLine("Id: " + tag.id);
+            telemetry.addLine("X: " + tag.ftcPose.x);
+            telemetry.addLine("Y: " + tag.ftcPose.y);
+            telemetry.addLine("Z: " + tag.ftcPose.z);
+        } else {
+            telemetry.addLine("No FTC Pose available (tag not in field layout or bad detection)");
+        }
+    }
+
     public static AprilTagDetection handleTag(AprilTagProcessor tagProcessor, ArrayList<AprilTag> tags, Telemetry telemetry) {
         AprilTagDetection tag = tagProcessor.getDetections().get(0);
 

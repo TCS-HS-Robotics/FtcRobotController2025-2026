@@ -27,12 +27,6 @@ public class mainTeleOp extends LinearOpMode {
 
     ArrayList<AprilTag> tags = new ArrayList<AprilTag>();
 
-    // Camera Intrinsics
-    double fx = 2.00556700e+03;
-    double fy = 2.02680472e+03;
-    double cx = 8.82572217e+02;
-    double cy = 7.74741600e+02;
-
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -49,7 +43,6 @@ public class mainTeleOp extends LinearOpMode {
                 .setDrawCubeProjection(true) // Draws a cube projection on the tag
                 .setDrawTagID(true) // Draws the tag number on the tag
                 .setDrawTagOutline(true) // Draws the tag outline on the tag
-                .setLensIntrinsics(fx, fy, cx, cy)
                 .build();
 
         // This is necessary for having the camera stream on the Driver Station
