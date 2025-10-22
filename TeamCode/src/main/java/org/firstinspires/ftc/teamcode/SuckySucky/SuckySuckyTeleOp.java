@@ -12,7 +12,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.UnnormalizedAngleUnit;
 import org.firstinspires.ftc.teamcode.GoBildaPinpoint.GoBildaPinpointDriver;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Locale;
+import java.util.Scanner;
 
 @TeleOp(name="SuckySuckyTeleOp", group="Robot")
 public class SuckySuckyTeleOp extends LinearOpMode {
@@ -22,6 +25,21 @@ public class SuckySuckyTeleOp extends LinearOpMode {
     private DcMotor leftFront, leftBack, rightFront, rightBack, shootLeft, shootRight;
     private GoBildaPinpointDriver pinpoint;
     private Servo rightTilt, leftTilt;
+
+    // Shooter Specifics
+    private double[] servo_coeffs = {-0.0321039824, 0.7489592892, -0.0689888076};//loadCoefficients();
+    private double[] servo_mins = {0.2, 0.11};//loadMins();
+    private double leftTiltMin = servo_mins[0];
+    private double rightTiltMin = servo_mins[1];
+
+    private double[] servo_maxs = {0.636, 0.416};
+    private double leftTiltMax = servo_maxs[0];
+    private double rightTiltMax = servo_maxs[1];
+
+    private double leftTiltPos = leftTiltMin;
+    private double rightTiltPos = rightTiltMin;
+
+    private double[] shootingPos1 = {0.394, 0.252};
 
 
     @Override
@@ -64,13 +82,8 @@ public class SuckySuckyTeleOp extends LinearOpMode {
         rightTilt = hardwareMap.get(Servo.class, "righttilt");
 
         rightTilt.setDirection(Servo.Direction.REVERSE);
-        leftTilt.setPosition(0.2);
-        rightTilt.setPosition(0.11);
-
-        sleep(5000);
-
-        leftTilt.setPosition(0.2 + 0.5);
-        rightTilt.setPosition(0.11 + 0.4);
+        leftTilt.setPosition(leftTiltMin);
+        rightTilt.setPosition(rightTiltMin);
 
         waitForStart();
         resetRuntime();
@@ -97,11 +110,6 @@ public class SuckySuckyTeleOp extends LinearOpMode {
 
             // --- Driving ---
 
-            // Tank Drive
-//            tankSideDrive(gamepad1.right_stick_y, rightFront, rightBack, speed); // Right Drive
-//            tankSideDrive(gamepad1.left_stick_y, leftFront, leftBack, speed); // Left Drive
-//            dPadDrive(gamepad1, leftFront, leftBack, rightFront, rightBack);
-
             driveControl(gamepad1);
 
             // Strafing
@@ -126,9 +134,12 @@ public class SuckySuckyTeleOp extends LinearOpMode {
                 shootRight.setPower(0.0);
             }
 
+            // Shooter Angle
+            handleShooterAngle(gamepad2);
 
 
-
+            telemetry.addLine("A: " + servo_coeffs[0] + " B: " + servo_coeffs[1] + " C: " + servo_coeffs[2]);
+            telemetry.addLine(String.format(Locale.US, "Servos Pos: (%.3f, %.3f)", leftTiltPos, rightTiltPos));
 
             telemetry.update();
 
@@ -138,6 +149,7 @@ public class SuckySuckyTeleOp extends LinearOpMode {
 
     }
 
+    // --- Driving Methods ---
     public void driveControl(Gamepad gamepad) {
         boolean isMoving = false;
 
@@ -192,42 +204,6 @@ public class SuckySuckyTeleOp extends LinearOpMode {
         }
     }
 
-//    public void tankSideDrive(float gamepad_stick_y, DcMotor sideFront, DcMotor sideBack, double speed) {
-//        if (-gamepad_stick_y > 0.5) {
-//            sideFront.setPower(speed);
-//            sideBack.setPower(speed);
-//        } else if (-gamepad_stick_y < -0.5) {
-//            sideFront.setPower(-speed);
-//            sideBack.setPower(-speed);
-//        } else {
-//            sideFront.setPower(0.0);
-//            sideBack.setPower(0.0);
-//        }
-//    }
-//
-//    public void dPadDrive(Gamepad gamepad, DcMotor leftFront, DcMotor leftBack, DcMotor rightFront, DcMotor rightBack) {
-//        if (gamepad.dpad_up) {
-//            leftFront.setPower(speed);
-//            leftBack.setPower(speed);
-//            rightFront.setPower(speed);
-//            rightBack.setPower(speed);
-//        } else if (gamepad.dpad_down) {
-//            leftFront.setPower(-speed);
-//            leftBack.setPower(-speed);
-//            rightFront.setPower(-speed);
-//            rightBack.setPower(-speed);
-//        } else if (gamepad.dpad_left) {
-//            strafeLeft(leftFront, leftBack, rightFront, rightBack);
-//        } else if (gamepad.dpad_right) {
-//            strafeRight(leftFront, leftBack, rightFront, rightBack);
-//        } else {
-//            leftFront.setPower(0.0);
-//            leftBack.setPower(0.0);
-//            rightFront.setPower(0.0);
-//            rightBack.setPower(0.0);
-//        }
-//    }
-
     public void strafeRight(DcMotor leftFront, DcMotor leftBack, DcMotor rightFront, DcMotor rightBack) {
         leftFront.setPower(speed);
         leftBack.setPower(-speed);
@@ -248,6 +224,103 @@ public class SuckySuckyTeleOp extends LinearOpMode {
         } else if (gamepad.left_bumper) { // Activate Slow Mode
             speed = 0.5;
         }
+    }
+
+
+    // --- Shooter Methods ---
+
+    private void goTo(double[] position) {
+        leftTiltPos = position[0];
+        rightTiltPos = position[1];
+    }
+
+    private double _clampLeft(double val) {
+        return Math.max(leftTiltMin, Math.min(leftTiltMax, val));
+    }
+
+    private double _clampRight(double val) {
+        return Math.max(rightTiltMin, Math.min(rightTiltMax, val));
+    }
+
+    /**
+     * Calculate right servo position using quadratic coefficients.
+     *
+     * @param leftPos Current left servo position
+     * @param coeffs Array [a, b, c] of quadratic coefficients
+     * @return Predicted right servo position
+     */
+    public double _calcRightTiltPos(double leftPos, double[] coeffs) {
+        return coeffs[0] + coeffs[1] * leftPos + coeffs[2] * leftPos * leftPos;
+    }
+
+    public void handleShooterAngle(Gamepad gamepad) {
+
+        if (gamepad.a) {
+            leftTiltPos = leftTiltMin;
+            rightTiltPos = rightTiltMin;
+        }
+
+        if (gamepad.b) {
+            goTo(shootingPos1);
+        }
+
+        if (-gamepad.left_stick_y > 0.5) {
+            leftTiltPos += 0.002;
+            rightTiltPos = _calcRightTiltPos(leftTiltPos, servo_coeffs);
+        }
+        if (-gamepad.left_stick_y < -0.5) {
+            leftTiltPos -= 0.002;
+            rightTiltPos = _calcRightTiltPos(leftTiltPos, servo_coeffs);
+        }
+
+        leftTiltPos = _clampLeft(leftTiltPos);
+        rightTiltPos = _clampRight(rightTiltPos);
+
+        leftTilt.setPosition(leftTiltPos);
+        rightTilt.setPosition(rightTiltPos);
+    }
+
+
+    /**
+     * Load coefficients from a file.
+     *
+     * @return Array [a, b, c] of coefficients
+     */
+    public static double[] loadCoefficients() {
+        double[] coeffs = new double[3];
+        try (Scanner scanner = new Scanner(new File("TeamCode/src/main/java/org/firstinspires/ftc/teamcode/SuckySucky/ServoHelp/CalibrationCoeffs.txt"))) {
+            for (int i = 0; i < 3; i++) {
+                if (scanner.hasNextDouble()) {
+                    coeffs[i] = scanner.nextDouble();
+                } else {
+                    throw new IOException("File does not contain enough numbers");
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading coefficients: " + e.getMessage());
+        }
+        return coeffs;
+    }
+
+    /**
+     * Load coefficients from a file.
+     *
+     * @return Array [a, b, c] of coefficients
+     */
+    public static double[] loadMins() {
+        double[] mins = new double[2];
+        try (Scanner scanner = new Scanner(new File("TeamCode/src/main/java/org/firstinspires/ftc/teamcode/SuckySucky/ServoHelp/CalibrationCoeffs.txt"))) {
+            for (int i = 0; i < 2; i++) {
+                if (scanner.hasNextDouble()) {
+                    mins[i] = scanner.nextDouble();
+                } else {
+                    throw new IOException("File does not contain enough numbers");
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error loading coefficients: " + e.getMessage());
+        }
+        return mins;
     }
 
 }

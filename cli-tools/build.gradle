@@ -1,0 +1,13 @@
+plugins {
+    id 'java-library'
+    id 'application'
+}
+
+java {
+    sourceCompatibility JavaVersion.VERSION_11
+    targetCompatibility JavaVersion.VERSION_11
+}
+
+application {
+    mainClass = 'org.firstinspires.ftc.teamcode.SuckySucky.ServoHelp.ServoRelationshipCLI'
+}
