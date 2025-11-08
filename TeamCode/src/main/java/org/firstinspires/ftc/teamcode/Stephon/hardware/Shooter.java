@@ -35,9 +35,9 @@ public class Shooter extends Hardware {
     private CurrentPos currentPos = new CurrentPos(MIN);
 
     // init
-    public Shooter(HardwareMap hw, Telemetry telemetry) {
+    public Shooter(HardwareMap hw, Telemetry telemetry, Gamepad gamepad) {
 
-        super(telemetry);
+        super(telemetry, gamepad);
 
         this.shootLeft = hw.get(DcMotor.class, "shootleft");
         this.shootRight = hw.get(DcMotor.class, "shootright");
@@ -50,7 +50,7 @@ public class Shooter extends Hardware {
 
     }
 
-    public void presets(Gamepad gamepad) {
+    public void presets() {
 
         // Flat Preset
         if (gamepad.a) {
@@ -58,7 +58,7 @@ public class Shooter extends Hardware {
         }
 
         // Position for Loading by Human Player
-        if (gamepad.a) {
+        if (gamepad.b) {
             this.currentPos.goTo(MAX);
         }
 
@@ -69,16 +69,16 @@ public class Shooter extends Hardware {
         }
 
         // Big Triangle Tip Shot
-        if (gamepad.left_bumper) {
+        if (gamepad.right_bumper) {
             this.currentPos.goTo(new ServoPos(0.4, 0.5)); // Temp
             this.outTakePower = 0.5; // Temp
         }
 
     }
 
-    public void angleControl(Gamepad gamepad) {
+    public void angleControl(boolean telemetryActive) {
 
-        this.presets(gamepad);
+        this.presets();
 
         if (-gamepad.left_stick_y > 0.5) {
             this.currentPos.left += 0.002;
@@ -92,6 +92,11 @@ public class Shooter extends Hardware {
         this.currentPos = _clampPos(this.currentPos);
 
         this.moveServos();
+
+        if (telemetryActive) {
+            telemetry.addLine("Current Pos: " + this.currentPos);
+        }
+
     }
 
     public void moveServos() {
@@ -99,7 +104,7 @@ public class Shooter extends Hardware {
         this.rightTilt.setPosition(this.currentPos.right);
     }
 
-    public void shooterControl(Gamepad gamepad) {
+    public void shooterControl() {
         telemetry.addLine("Right Trigger: " + gamepad.right_trigger);
         telemetry.addLine("Left Trigger: " + gamepad.left_trigger);
 
@@ -122,7 +127,7 @@ public class Shooter extends Hardware {
     }
 
 
-    public void goToOptimalShootingAngleAndSpeed(Gamepad gamepad, double distance, double target_height) {
+    public void goToOptimalShootingAngleAndSpeed(double distance, double target_height) {
         ServoPos pos = _calcOptimalShootingAngleAndSpeed(distance, target_height);
 
         this.currentPos.goTo(pos);
@@ -146,6 +151,14 @@ public class Shooter extends Hardware {
     public void stopShooter() {
         this.shootLeft.setPower(0.0);
         this.shootRight.setPower(0.0);
+    }
+
+    public double getOutTakePower() {
+        return this.outTakePower;
+    }
+
+    public void setOutTakePower(double power) {
+        this.outTakePower = power;
     }
 
     // --- Helper Methods ---
@@ -245,18 +258,25 @@ public class Shooter extends Hardware {
         double leftTiltPos = _degToTiltPos(Math.toDegrees(bestTheta));
         double rightTiltPos = _calcRightTiltPos(leftTiltPos, CAL_COEFFS);
 
+        ServoPos bestServoPos = new ServoPos(leftTiltPos, rightTiltPos);
+
         // Telemetry
+        telemetry.addLine();
+        telemetry.addLine();
         telemetry.addLine("=== OPTIMAL SHOOTING CALC ===");
-        telemetry.addData("Distance", distance);
-        telemetry.addData("Theta Min (deg)", Math.toDegrees(theta_min));
-        telemetry.addData("Theta Max (deg)", Math.toDegrees(theta_max));
-        telemetry.addData("Best Theta (deg)", Math.toDegrees(bestTheta));
-        telemetry.addData("Required Exit Velocity (in/s)", bestV);
-        telemetry.addData("Required Wheel Speed (in/s)", requiredWheelSpeed);
-        telemetry.addData("Motor Power", outTakePower);
+        telemetry.addData("   Distance", distance);
+//        telemetry.addData("   Theta Min (deg)", Math.toDegrees(theta_min));
+//        telemetry.addData("   Theta Max (deg)", Math.toDegrees(theta_max));
+        telemetry.addData("   Best Theta (deg)", Math.toDegrees(bestTheta));
+        telemetry.addData("   Optimal Servo Pos: ", bestServoPos);
+//        telemetry.addData("   Required Exit Velocity (in/s)", bestV);
+        telemetry.addData("   Required Wheel Speed (in/s)", requiredWheelSpeed);
+        telemetry.addData("   Motor Power", outTakePower);
+        telemetry.addLine();
+        telemetry.addLine();
         telemetry.update();
 
-        return new ServoPos(leftTiltPos, rightTiltPos);
+        return bestServoPos;
     }
 
 

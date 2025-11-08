@@ -13,9 +13,9 @@ public class Tube extends Hardware {
 
     private CRServo bottomLeft, topLeft, topRight, bottomRight;
 
-    public Tube(HardwareMap hw, Telemetry telemetry) {
+    public Tube(HardwareMap hw, Telemetry telemetry, Gamepad gamepad) {
 
-        super(telemetry);
+        super(telemetry, gamepad);
 
         this.bottomLeft = hw.get(CRServo.class, "bottomleft");
         this.topLeft = hw.get(CRServo.class, "topleft");
@@ -26,11 +26,6 @@ public class Tube extends Hardware {
         this.topLeft.setDirection(CRServo.Direction.REVERSE);
 
     }
-
-    public void mainLoop(@Nullable Gamepad gamepad) {
-
-    }
-
 
     public void inTake() {
         //bottomLeft.setPower(1.0);

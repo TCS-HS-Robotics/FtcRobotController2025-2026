@@ -7,13 +7,13 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class Hardware {
 
     Telemetry telemetry;
+    Gamepad gamepad;
 
-    public Hardware(Telemetry telemetry) {
+    public Hardware(Telemetry telemetry, Gamepad gamepad) {
         this.telemetry = telemetry;
+        this.gamepad = gamepad;
     }
 
-    public void mainLoop(Gamepad gamepad) {
 
-    }
 
 }

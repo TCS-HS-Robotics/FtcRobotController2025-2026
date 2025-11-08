@@ -37,9 +37,9 @@ public class AprilTag {
     static {
         KNOWN_TAGS.put(20, new AprilTag(20, "tag36h11", "blue"));
         KNOWN_TAGS.put(24, new AprilTag(24, "tag36h11", "red"));
-        KNOWN_TAGS.put(21, new AprilTag(21, "tag36h11", new char[]{'g', 'p', 'p'}));
-        KNOWN_TAGS.put(22, new AprilTag(22, "tag36h11", new char[]{'p', 'g', 'p'}));
-        KNOWN_TAGS.put(23, new AprilTag(23, "tag36h11", new char[]{'p', 'p', 'g'}));
+        KNOWN_TAGS.put(21, new AprilTag(21, "tag36h11", new char[]{'G', 'P', 'P'}));
+        KNOWN_TAGS.put(22, new AprilTag(22, "tag36h11", new char[]{'P', 'G', 'P'}));
+        KNOWN_TAGS.put(23, new AprilTag(23, "tag36h11", new char[]{'P', 'P', 'G'}));
     }
 
     // --- CONSTRUCTORS ---

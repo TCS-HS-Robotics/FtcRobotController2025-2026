@@ -109,22 +109,40 @@ public class VisionSystem {
         ArrayList<AprilTagDetection> detections = getDetections();
 
         if (detections.isEmpty()) {
-            telemetry.addLine("No AprilTags detected.");
+            //telemetry.addLine("No AprilTags detected.");
             return;
         }
 
+        telemetry.addLine();
+        telemetry.addLine("---" + " Detected Tag Info " + "---");
+
         for (AprilTagDetection detection : detections) {
-            telemetry.addLine("Detected ID: " + detection.id);
-            telemetry.addLine(String.format("X: %.1f  Y: %.1f  Z: %.1f",
-                    detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
-
-            AprilTag known = getTagById(detection.id);
-            if (known != null)
-                telemetry.addLine("Known Tag Info:\n" + known.toString());
-
-            telemetry.addLine("Distance (cm): " + AprilTag.getTagDistance(detection));
-            telemetry.addLine("Goal Dist (cm): " + AprilTag.getGoalDistance(detection));
-            telemetry.addLine("--------------------------------");
+            AprilTag tag = AprilTag.fromDetection(detection);
+            telemetry.addLine("Tag: " + tag.id);
+            telemetry.addLine("   Type: " + tag.type);
+            if (tag.type == AprilTag.TagType.COLOR) {
+                telemetry.addLine("   Color: " + tag.color);
+            } else if (tag.type == AprilTag.TagType.ENCODED) {
+                telemetry.addLine("   Code: " + tag.code);
+            }
+            telemetry.addLine("   Position: (" + tag.x + ", " + tag.y + ", " + tag.z + ")");
+            telemetry.addLine();
         }
+
+        telemetry.addLine();
+        telemetry.addLine();
+        telemetry.addLine();
     }
+
+    public boolean allianceTagIsFound(String allianceColor) {
+        ArrayList<AprilTagDetection> detections = getDetections();
+        for (AprilTagDetection detection : detections) {
+            AprilTag tag = AprilTag.fromDetection(detection);
+            if (tag.type.equals(AprilTag.TagType.COLOR) && tag.color.equals(allianceColor)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
