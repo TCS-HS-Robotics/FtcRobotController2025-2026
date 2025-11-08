@@ -161,6 +161,20 @@ public class Shooter extends Hardware {
         this.outTakePower = power;
     }
 
+    public void setTiltAngle(double left, double right) {
+        this.currentPos.goTo(left, right);
+    }
+
+    public void setTiltAngle(double left) {
+        double right = _calcRightTiltPos(left, this.CAL_COEFFS);
+        this.currentPos.goTo(left, right);
+    }
+
+    public void setTiltAngle(ServoPos pos) {
+        this.currentPos.goTo(pos);
+    }
+
+
     // --- Helper Methods ---
     private double _calcRightTiltPos(double leftPos, CalibrationCoeffs coeffs) {
         return coeffs.a + coeffs.b * leftPos + coeffs.c * leftPos * leftPos;
@@ -286,7 +300,7 @@ public class Shooter extends Hardware {
 
 
     // --- Helper Classes ---
-    public class ServoPos {
+    public static class ServoPos {
         public double left, right;
         public ServoPos(double left, double right) {
             this.left = left;
@@ -326,6 +340,11 @@ public class Shooter extends Hardware {
         public void goTo(ServoPos pos) {
             super.setPos(pos);
         }
+
+        public void goTo(double left, double right) {
+            super.setPos(left, right);
+        }
+
 
 
     }
