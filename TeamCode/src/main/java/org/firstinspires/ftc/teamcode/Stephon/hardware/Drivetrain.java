@@ -25,75 +25,9 @@ public class Drivetrain extends Hardware {
     }
 
     public void driveControl() {
-
         this.changeSpeedMode();
 
-        // --- OLD CODE (commented out for backup) ---
-        /*
-        boolean isMoving = false;
-
-        // --- Joystick Tank Drive ---
-        if (-gamepad.left_stick_y > 0.5) { // Left stick forward
-            this.leftFront.setPower(speed);
-            this.leftBack.setPower(speed);
-            isMoving = true;
-        } else if (-gamepad.left_stick_y < -0.5) { // Left stick backward
-            this.leftFront.setPower(-speed);
-            this.leftBack.setPower(-speed);
-            isMoving = true;
-        }
-
-        if (-gamepad.right_stick_y > 0.5) { // Right stick forward
-            this.rightFront.setPower(speed);
-            this.rightBack.setPower(speed);
-            isMoving = true;
-        } else if (-gamepad.right_stick_y < -0.5) { // Right stick backward
-            this.rightFront.setPower(-speed);
-            this.rightBack.setPower(-speed);
-            isMoving = true;
-        }
-
-        // --- Strafing ---
-        if (gamepad.right_trigger > 0.5) {
-            this._strafeRight();
-        }
-        if (gamepad.left_trigger > 0.5) {
-            this._strafeLeft();
-        }
-
-        // --- DPad Drive Overrides ---
-        if (gamepad.dpad_up) {
-            this.leftFront.setPower(speed);
-            this.leftBack.setPower(speed);
-            this.rightFront.setPower(speed);
-            this.rightBack.setPower(speed);
-            isMoving = true;
-        } else if (gamepad.dpad_down) {
-            this.leftFront.setPower(-speed);
-            this.leftBack.setPower(-speed);
-            this.rightFront.setPower(-speed);
-            this.rightBack.setPower(-speed);
-            isMoving = true;
-        } else if (gamepad.dpad_left) {
-            this._strafeLeft();
-            isMoving = true;
-        } else if (gamepad.dpad_right) {
-            this._strafeRight();
-            isMoving = true;
-        }
-
-        // --- If nothing pressed, stop ---
-        if (!isMoving) {
-            this.leftFront.setPower(0);
-            this.leftBack.setPower(0);
-            this.rightFront.setPower(0);
-            this.rightBack.setPower(0);
-        }
-        */
-
-        // --- NEW CODE: Priority-based input handling: D-Pad > Triggers > Joysticks ---
-
-        // D-Pad has highest priority (overrides all other inputs)
+        // D-Pad overrides everything
         if (gamepad.dpad_up) {
             this.leftFront.setPower(speed);
             this.leftBack.setPower(speed);
@@ -109,31 +43,35 @@ public class Drivetrain extends Hardware {
         } else if (gamepad.dpad_right) {
             this._strafeRight();
         }
-        // Trigger-based strafing (lower priority than D-Pad)
+        // Triggers override joysticks (but not D-pad)
         else if (gamepad.right_trigger > 0.5) {
             this._strafeRight();
         } else if (gamepad.left_trigger > 0.5) {
             this._strafeLeft();
         }
-        // Joystick tank drive (lowest priority)
-        else if (-gamepad.left_stick_y > 0.5) {
-            this.leftFront.setPower(speed);
-            this.leftBack.setPower(speed);
-        } else if (-gamepad.left_stick_y < -0.5) {
-            this.leftFront.setPower(-speed);
-            this.leftBack.setPower(-speed);
-        } else if (-gamepad.right_stick_y > 0.5) {
-            this.rightFront.setPower(speed);
-            this.rightBack.setPower(speed);
-        } else if (-gamepad.right_stick_y < -0.5) {
-            this.rightFront.setPower(-speed);
-            this.rightBack.setPower(-speed);
-        } else {
-            // Nothing pressed - stop all motors
-            this.leftFront.setPower(0);
-            this.leftBack.setPower(0);
-            this.rightFront.setPower(0);
-            this.rightBack.setPower(0);
+        // Joystick tank drive - BOTH sides handled independently with constant speed
+        else {
+            double leftPower = 0;
+            double rightPower = 0;
+
+            // Left joystick controls left side at constant speed
+            if (-gamepad.left_stick_y > 0.5) {
+                leftPower = speed;
+            } else if (-gamepad.left_stick_y < -0.5) {
+                leftPower = -speed;
+            }
+
+            // Right joystick controls right side at constant speed
+            if (-gamepad.right_stick_y > 0.5) {
+                rightPower = speed;
+            } else if (-gamepad.right_stick_y < -0.5) {
+                rightPower = -speed;
+            }
+
+            this.leftFront.setPower(leftPower);
+            this.leftBack.setPower(leftPower);
+            this.rightFront.setPower(rightPower);
+            this.rightBack.setPower(rightPower);
         }
     }
 
@@ -191,6 +129,20 @@ public class Drivetrain extends Hardware {
     }
 
     public void _strafeLeft() {
+        this.leftFront.setPower(-speed);
+        this.leftBack.setPower(speed);
+        this.rightFront.setPower(speed);
+        this.rightBack.setPower(-speed);
+    }
+
+    public void _strafeRight(double speed) {
+        this.leftFront.setPower(speed);
+        this.leftBack.setPower(-speed);
+        this.rightFront.setPower(-speed);
+        this.rightBack.setPower(speed);
+    }
+
+    public void _strafeLeft(double speed) {
         this.leftFront.setPower(-speed);
         this.leftBack.setPower(speed);
         this.rightFront.setPower(speed);

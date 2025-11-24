@@ -47,6 +47,16 @@ public class VisionSystem {
                 .setCamera(camera)
                 .setCameraResolution(new Size(640, 480))
                 .build();
+
+        // Wait for camera to start streaming before returning
+        while (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+            try {
+                Thread.sleep(20);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
     }
 
     // --- Periodic Update (called every loop) ---

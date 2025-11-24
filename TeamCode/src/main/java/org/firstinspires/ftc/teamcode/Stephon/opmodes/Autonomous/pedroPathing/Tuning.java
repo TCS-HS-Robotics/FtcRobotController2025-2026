@@ -372,17 +372,35 @@ class ForwardVelocityTuner extends OpMode {
         follower.update();
         draw();
 
+        // === CLEAR TELEMETRY FIRST ===
+
+        // === ADD THIS DEBUG TELEMETRY ===
+        telemetryM.debug("=== FORWARD VELOCITY TUNER DEBUG ===");
+        telemetryM.debug("Current X Position: " + follower.getPose().getX());
+        telemetryM.debug("Current Y Position: " + follower.getPose().getY());
+        telemetryM.debug("Current Heading: " + Math.toDegrees(follower.getPose().getHeading()));
+        telemetryM.debug("Distance from start: " + Math.abs(follower.getPose().getX()));
+        telemetryM.debug("Target Distance: " + DISTANCE);
+        telemetryM.debug("Should stop when distance > " + DISTANCE);
+        telemetryM.debug("End triggered: " + end);
+        telemetryM.debug("---");
 
         if (!end) {
             if (Math.abs(follower.getPose().getX()) > DISTANCE) {
                 end = true;
                 stopRobot();
+
+                telemetryM.debug("STOPPING NOW!");
+                telemetryM.debug("Final X: " + follower.getPose().getX());
+                telemetryM.debug("Distance traveled: " + Math.abs(follower.getPose().getX()));
             } else {
                 follower.setTeleOpDrive(1,0,0,true);
-                //double currentVelocity = Math.abs(follower.getVelocity().getXComponent());
                 double currentVelocity = Math.abs(follower.poseTracker.getLocalizer().getVelocity().getX());
                 velocities.add(currentVelocity);
                 velocities.remove(0);
+
+                telemetryM.debug("Currently moving forward...");
+                telemetryM.debug("Current velocity: " + currentVelocity);
             }
         } else {
             stopRobot();
@@ -391,16 +409,13 @@ class ForwardVelocityTuner extends OpMode {
                 average += velocity;
             }
             average /= velocities.size();
+
+            telemetryM.debug("=== RESULTS ===");
             telemetryM.debug("Forward Velocity: " + average);
-            telemetryM.debug("\n");
-            telemetryM.debug("Press A to set the Forward Velocity temporarily (while robot remains on).");
-
-            for (int i = 0; i < velocities.size(); i++) {
-                telemetry.addData(String.valueOf(i), velocities.get(i));
-            }
-
-            telemetryM.update(telemetry);
-            telemetry.update();
+            telemetryM.debug("Final X Position: " + follower.getPose().getX());
+            telemetryM.debug("Distance Traveled: " + Math.abs(follower.getPose().getX()) + " inches");
+            telemetryM.debug("");
+            telemetryM.debug("Press A to set the Forward Velocity temporarily");
 
             if (gamepad1.aWasPressed()) {
                 follower.setXVelocity(average);
@@ -408,6 +423,10 @@ class ForwardVelocityTuner extends OpMode {
                 changes.add(message);
             }
         }
+
+        // === UPDATE TELEMETRY EVERY LOOP ===
+        telemetryM.update(telemetry);
+        telemetry.update();
     }
 }
 

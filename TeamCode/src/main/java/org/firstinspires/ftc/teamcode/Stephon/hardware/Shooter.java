@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -15,21 +16,28 @@ public class Shooter extends Hardware {
     private final double MAX_RPM = 6000;
     private final double LEFT_TILT_AT_90_DEG = 0.72;
     private final double SHOOTER_HEIGHT_OFF_GROUND = 2.5; // in inches
-    private final double TRANSFER_EFFICIENCY = 0.53357890; // start 0.55, lower if ball is slower than expected
+    private final double TRANSFER_EFFICIENCY_FAR = 0.55; // start 0.55, lower if ball is slower than expected
+    private final double TRANSFER_EFFICIENCY_CLOSE = 0.575;
     private final double MAX_SHOOTER_POWER = 0.5;    // user cap
+    private final double TICKS_PER_REV = 537.7;  // goBILDA Yellow Jacket motor encoder ticks
 
     // Shooting Config
     private DcMotor shootLeft, shootRight;
-    private double outTakePower = 0.45;
+    private double outTakePower = 0.425;
     private double inTakePower = -0.25;
+
+    // Encoder tracking for ready-state detection
+    private double currentMotorPosition = 0;
+    private int timeBetweenChecks = 10; // in milliseconds
+    private ElapsedTime runtime = new ElapsedTime();
 
     // Servo Rotators
     private Servo leftTilt, rightTilt;
 
     // Presets and other Constants
     private final CalibrationCoeffs CAL_COEFFS = new CalibrationCoeffs(-0.0321039824, 0.7489592892, -0.0689888076);
-    private final ServoPos MIN = new ServoPos(0.2, 0.11);
-    private final ServoPos MAX = new ServoPos(0.636, 0.416);
+    public final ServoPos MIN = new ServoPos(0.2, 0.11);
+    public final ServoPos MAX = new ServoPos(0.636, 0.416);
 
     // Position handling
     private CurrentPos currentPos = new CurrentPos(MIN);
@@ -48,6 +56,8 @@ public class Shooter extends Hardware {
         this.shootRight.setDirection(DcMotorSimple.Direction.REVERSE);
         this.rightTilt.setDirection(Servo.Direction.REVERSE);
 
+        this.currentPos.goTo(MIN);
+
     }
 
     public void presets() {
@@ -63,16 +73,31 @@ public class Shooter extends Hardware {
         }
 
         // Small Triangle Tip Shot
-        if (gamepad.left_bumper) {
-            this.currentPos.goTo(new ServoPos(0.3, 0.4)); // Temp
-            this.outTakePower = 0.5; // Temp
+        if (gamepad.dpad_down) {
+            this.currentPos.goTo(new ServoPos(0.53, 0.35)); // Temp
+            this.outTakePower = 0.3894; // Temp
         }
 
         // Big Triangle Tip Shot
-        if (gamepad.right_bumper) {
-            this.currentPos.goTo(new ServoPos(0.4, 0.5)); // Temp
-            this.outTakePower = 0.5; // Temp
+        if (gamepad.dpad_up) {
+            this.currentPos.goTo(new ServoPos(0.56, 0.37)); // Temp
+            this.outTakePower = 0.3506; // Temp
         }
+
+        // Big Triangle Mid Shot
+        if (gamepad.dpad_left) {
+            this.currentPos.goTo(new ServoPos(0.608, 0.398)); // Temp
+            this.outTakePower = 0.3; // Temp
+        }
+
+        // Up Against Goal
+        if (gamepad.dpad_right) {
+            this.currentPos.goTo(MAX); // Temp
+            this.outTakePower = 0.3; // Temp
+        }
+
+//        telemetry.addLine("Servo Pos: " + this.currentPos);
+//        telemetry.addLine("OuttakePower: " + this.outTakePower);
 
     }
 
@@ -134,6 +159,16 @@ public class Shooter extends Hardware {
         this.moveServos();
     }
 
+    public void handleIntakeOuttake() {
+        if (this.gamepad.right_trigger > 0.5) {
+            this.outTake();
+        } else if (this.gamepad.left_trigger > 0.5) {
+            this.inTake();
+        } else {
+            this.stopShooter();
+        }
+    }
+
     public void inTake() {
         this.shootLeft.setPower(this.inTakePower);
         this.shootRight.setPower(this.inTakePower);
@@ -145,7 +180,23 @@ public class Shooter extends Hardware {
     }
 
     public boolean readyToOutTake() {
-        return this.shootLeft.getPower() == this.outTakePower && this.shootRight.getPower() == this.outTakePower;
+        if (runtime.milliseconds() > timeBetweenChecks) {
+            // Calculate expected motor speed based on outTakePower
+            double expectedRPM = MAX_RPM * outTakePower;
+            double expectedTicksPerMs = (expectedRPM / 60.0) * (TICKS_PER_REV / 1000.0);
+            double expectedChangeInTime = expectedTicksPerMs * timeBetweenChecks;
+
+            // Check if actual change matches expected (with 80% threshold for tolerance)
+            double actualChange = Math.abs(currentMotorPosition - this.shootLeft.getCurrentPosition());
+            boolean isReady = actualChange > expectedChangeInTime * 0.8;
+
+            currentMotorPosition = this.shootLeft.getCurrentPosition();
+            runtime.reset();
+
+            return isReady;
+        }
+
+        return false;
     }
 
     public void stopShooter() {
@@ -172,6 +223,7 @@ public class Shooter extends Hardware {
 
     public void setTiltAngle(ServoPos pos) {
         this.currentPos.goTo(pos);
+        this.moveServos();
     }
 
 
@@ -224,6 +276,7 @@ public class Shooter extends Hardware {
     public ServoPos _calcOptimalShootingAngleAndSpeed(double distance, double target_height) {
         double g = 386.09; // in/s²
         double delta_y = target_height - SHOOTER_HEIGHT_OFF_GROUND;
+        double transfer_efficiency = distance > 80 ? TRANSFER_EFFICIENCY_FAR : TRANSFER_EFFICIENCY_CLOSE;
 
         // Speed constraints
         double maxPower = MAX_SHOOTER_POWER;
@@ -264,7 +317,7 @@ public class Shooter extends Hardware {
         }
 
         // ✅ FIXED: Account for efficiency when going backwards
-        double requiredWheelSpeed = bestV / TRANSFER_EFFICIENCY;  // Reverse the efficiency loss
+        double requiredWheelSpeed = bestV / transfer_efficiency;  // Reverse the efficiency loss
         double wheel_rpm = (requiredWheelSpeed / (2 * Math.PI * WHEEL_RADIUS)) * 60;
         this.outTakePower = Math.min(maxPower, (wheel_rpm / MAX_RPM));
 

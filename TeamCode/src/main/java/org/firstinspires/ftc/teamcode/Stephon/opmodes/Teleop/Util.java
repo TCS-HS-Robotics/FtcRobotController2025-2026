@@ -35,11 +35,11 @@ class ShooterCalibration extends OpMode {
 
         double outTakePower = robot.shooter.getOutTakePower();
         if (gamepad2.dpad_up) {
-            robot.shooter.setOutTakePower(outTakePower + 0.01);
+            robot.shooter.setOutTakePower(outTakePower + 0.001);
         } else if (gamepad2.dpad_down) {
-            robot.shooter.setOutTakePower(outTakePower - 0.01);
+            robot.shooter.setOutTakePower(outTakePower - 0.001);
         }
-        robot.handleIntakeOuttake(true);
+        robot.handleIntake(true);
         telemetry.update();
     }
 
